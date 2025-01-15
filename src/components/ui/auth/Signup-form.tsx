@@ -1,24 +1,27 @@
 "use client";
-
-import { loginUser } from "@/api/auth/loginUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signupUser } from "@/api/auth/signupUser";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
-export function LoginForm() {
+export function SignupForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
+    fullName: "",
     email: "",
-    password: "",
+    phoneNumber:"",
+    password:"",
+    role: "BUYER"
   });
 
   // Form validation
   const validateForm = () => {
-    if (!formData.email || !formData.password) {
-      setError("Both fields are required");
+    if (!formData.fullName || !formData.email || !formData.phoneNumber || !formData.password ||!formData.role ) {
+      setError("Enter the required fields");
       return false;
     }
     return true;
@@ -34,24 +37,20 @@ export function LoginForm() {
     setLoading(true);
     try {
       // Call the login API through the authService
-      const data = await loginUser(formData.email, formData.password);
+      const data = await signupUser(formData.fullName,formData.email, formData.phoneNumber,formData.password,formData.role);
 
-      console.log("login data is ", data);
-
-      // Store JWT token if login is successful
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user",data.user)
+      console.log("signup data is ", data);
 
       // Optionally, redirect or update user state
-      alert("Login successful");
+      alert("signup successful");
       // Redirect or update the application state (e.g., user context)
 
       if(data!=null){
-        router.push('/')
+        router.push('/login')
       }
     } catch (error: any) {
       // Handle login error from the service
-      setError(error.message || "An error occurred during login.");
+      setError(error.message || "An error occurred during signup.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +59,7 @@ export function LoginForm() {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full sm:w-96">
-        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Login</h2>
+        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Sign Up</h2>
 
         {error && (
           <div className="text-red-500 text-sm mb-4">{error}</div>
@@ -68,6 +67,16 @@ export function LoginForm() {
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
+            <Input
+              type="string"
+              placeholder="Full Name"
+              value={formData.fullName}
+              onChange={(e) =>
+                setFormData({ ...formData, fullName: e.target.value })
+              }
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+
             <Input
               type="email"
               placeholder="Email"
@@ -77,7 +86,15 @@ export function LoginForm() {
               }
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
-
+            <Input
+              type="text"
+              placeholder="Phone"
+              value={formData.phoneNumber}
+              onChange={(e) =>
+                setFormData({ ...formData, phoneNumber: e.target.value })
+              }
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
             <Input
               type="password"
               placeholder="Password"
@@ -87,6 +104,22 @@ export function LoginForm() {
               }
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+             <div className="w-full">
+              <Select
+                value={formData.role}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, role: value })
+                }
+              >
+                <SelectTrigger className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <SelectValue placeholder="Select Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BUYER">Buyer</SelectItem>
+                  <SelectItem value="SELLER">Seller</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Button
@@ -95,9 +128,9 @@ export function LoginForm() {
             className="w-full mt-6 p-3 bg-emerald-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
           >
             {loading ? (
-              <span className="animate-ping">Loading...</span>
+               <i className="material-icons animate-spin">autorenew</i>
             ) : (
-              "Login"
+              "Sign up"
             )}
           </Button>
           <Button
@@ -109,7 +142,7 @@ export function LoginForm() {
             }}
           >
             {loading ? (
-              <span className="animate-ping">Loading...</span>
+               <i className="material-icons animate-spin">autorenew</i>
             ) : (
               "Back"
             )}
@@ -118,9 +151,9 @@ export function LoginForm() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <a href="/signup" className="text-blue-600 hover:underline">
-              Sign up
+            Already have an account?{" "}
+            <a href="/login" className="text-blue-600 hover:underline">
+              login
             </a>
           </p>
         </div>
