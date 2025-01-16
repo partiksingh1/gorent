@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { userAtom,isAuthenticatedAtom,User} from "@/state/auth";
+import { useAtom } from "jotai";
 
 export function LoginForm() {
   const router = useRouter();
@@ -14,6 +16,9 @@ export function LoginForm() {
     email: "",
     password: "",
   });
+
+  const [, setUser] = useAtom(userAtom); // Set the user state atom
+  const [, setIsAuthenticated] = useAtom(isAuthenticatedAtom);
 
   // Form validation
   const validateForm = () => {
@@ -36,12 +41,16 @@ export function LoginForm() {
       // Call the login API through the authService
       const data = await loginUser(formData.email, formData.password);
 
-      console.log("login data is ", data);
-
       // Store JWT token if login is successful
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user",data.user)
+      const { token, user } = data; // Destructure the token and user from response
 
+      // Store the user and token in Jotai atoms and localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user)); // Store user as a string in localStorage
+
+      setUser({ ...user, token }); // Store user data (including token) in userAtom
+      setIsAuthenticated(true); // Set authentication state to true      
+      
       // Optionally, redirect or update user state
       alert("Login successful");
       // Redirect or update the application state (e.g., user context)

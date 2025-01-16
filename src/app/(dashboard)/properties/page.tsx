@@ -20,38 +20,27 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Search, BedDouble, Bath, Home, Euro } from "lucide-react"
 import { fetchPropertiesApi } from "@/api/properties/fetchProperties"
 import { useRouter } from "next/navigation"
-
-interface Property {
-  id: number
-  title: string
-  description: string
-  price: number
-  address: string
-  propertyType: string
-  status: string
-  numBedrooms: number
-  numBathrooms: number
-  squareMeters: number
-  images: { url: string }[]
-}
+import { useAtom } from "jotai"
+import { filtersAtom, propertiesAtom } from "@/state/properties"
+import { Spinner } from "@/components/ui/spinner"
+import { userAtom } from "@/state/auth"
 
 export default function PropertiesPage() {
   const handlePageRedirect = (router: any, propertyId: number) => {
     // Replace '/property-details/[id]' with the actual URL of the property detail page
     router.push(`/properties/${propertyId}`)
   }
-  const [properties, setProperties] = useState<Property[]>([])
-  const [filters, setFilters] = useState({
-    location: "",
-    propertyType: "",
-    priceMin: 0,
-    priceMax: 1000000,
-    numBedrooms: "",
-    status: "",
-  })
+  const [properties, setProperties] = useAtom(propertiesAtom)
+  const [filters, setFilters] = useAtom(filtersAtom)
+  const [loading, setLoading] = useState(true) // Loading state
+  const [user] = useAtom(userAtom);
+  console.log("user is ",user);
+  
+  
 
   const router = useRouter();
   const fetchProperties = async (filters: { location: string; propertyType: string; priceMin: number; priceMax: number; numBedrooms: string; status: string }) => {
+    setLoading(true) 
     const queryParams = new URLSearchParams()
     if (filters.location) queryParams.append("location", filters.location)
     if (filters.propertyType) queryParams.append("propertyType", filters.propertyType)
@@ -66,12 +55,14 @@ export default function PropertiesPage() {
       setProperties(propertiesData.properties)
     } catch (error) {
       console.error("Error fetching properties:", error)
+    }finally{
+      setLoading(false)
     }
   }
 
   useEffect(() => {
     fetchProperties(filters)
-  }, [filters])
+  }, [filters, setProperties])
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -156,6 +147,11 @@ export default function PropertiesPage() {
       </div>
 
       {/* Properties Grid */}
+      {loading ? (
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Spinner size="large" className="text-emerald-600" />
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {properties.map((property) => (
           <Card key={property.id} className="hover:shadow-lg transition-shadow">
@@ -199,6 +195,7 @@ export default function PropertiesPage() {
           </Card>
         ))}
       </div>
+      )}
 
       {/* No Results Message */}
       {properties.length === 0 && (

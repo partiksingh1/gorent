@@ -1,102 +1,85 @@
-"use client"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import axios from "axios"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Heart, BedDouble, Bath, Home, Trash2 } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+"use client";
 
-export interface User {
-  id: string
-  email: string
-  name: string
-  role: string
-}
-
-interface FavoriteProperty {
-  id: number
-  property: {
-    id: number
-    title: string
-    description: string
-    price: number
-    address: string
-    propertyType: string
-    numBedrooms: number
-    numBathrooms: number
-    squareMeters: number
-    images: { url: string }[]
-  }
-}
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Heart, BedDouble, Bath, Home, Trash2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { useAtom } from "jotai";
+import { userAtom } from "@/state/auth";
+import { favoritesAtom } from "@/state/properties";
+import { fetchFavoritesApi } from "@/api/properties/fetchFavorites";
 
 export default function FavoritesPage() {
-  const router = useRouter()
+  const router = useRouter();
+  const [favorites, setFavorites] = useAtom(favoritesAtom);
+  const [loading, setLoading] = useState(false); // Start with loading as true
+  const [user] = useAtom(userAtom);
+  console.log("fav user is", user);
 
-  const [favorites, setFavorites] = useState<FavoriteProperty[]>([])
-  const [loading, setLoading] = useState(false)
+  // Ensure userId is available before calling API
+  const userId = user?.user_id;
+  console.log("userId",userId);
+  
 
-  // Fetch the user and their favorites from the API
-  const fetchFavorites = async () => {
-    try {
-      // Get the user from localStorage
-      const userData = localStorage.getItem("user")
-      console.log("user is",(userData))
-      if (!userData) {
-        router.push("/login") // Redirect to login if no user is found
-        return
-      }
-
-      const user: User = JSON.parse(userData) // Parse the user object from localStorage
-      const userId = user.id
-      console.log("user id is ",userId)
-
-      setLoading(true)
-
-      const response = await axios.get(`http://localhost:3000/api/v1/favorites/${userId}`)
-      console.log("favorites is ", response.data);
-      
-      setFavorites(response.data)
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load favorites",
-      })
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login"); // If no user, redirect to login
+      return;
     }
-  }
+
+    // Fetch favorites only if userId is available
+    const fetchFavorites = async () => {
+      setLoading(true);
+      try {
+        console.log("userid is",userId);
+         // Set loading state to true before starting the API call
+        const favoritesData = await fetchFavoritesApi(userId);
+        console.log("favoritesData is", favoritesData);
+        setFavorites(favoritesData.favorites); // Update the favorites state
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch favorites.",
+        });
+      } finally {
+        setLoading(false); // Set loading to false after API call finishes
+      }
+    };
+
+    if (userId) {
+      fetchFavorites(); // Call the fetch function only if userId is valid
+    }
+  }, [user, userId, setFavorites, router]);
 
   // Remove a favorite from the list
   const removeFavorite = async (favoriteId: number) => {
     try {
-      const response = await axios.delete(`/api/v1/favorites/${favoriteId}`)
-
+      const response = await axios.delete(`/api/v1/favorites/${favoriteId}`);
       // Update the state after removing the favorite
-      setFavorites((prevFavorites) => prevFavorites.filter((fav) => fav.id !== favoriteId))
+      setFavorites((prevFavorites) => prevFavorites.filter((fav) => fav.id !== favoriteId));
 
       toast({
         title: "Success",
         description: "Property removed from favorites",
-      })
+      });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to remove favorite",
-      })
+      });
     }
-  }
-
-  useEffect(() => {
-    fetchFavorites()
-  }, [])
+  };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">My Favorites</h1>
+        <h1 className="text-3xl font-bold mb-8">Saved Properties</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse">
@@ -109,20 +92,20 @@ export default function FavoritesPage() {
           ))}
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">My Favorites</h1>
+        <h1 className="text-3xl font-bold">Saved</h1>
         <div className="flex items-center gap-2">
           <Heart className="text-red-500" />
-          <span className="text-lg font-medium">{favorites.length} Properties</span>
+          <span className="text-lg font-medium">{Array.isArray(favorites) ? favorites.length : 0} Properties</span>
         </div>
       </div>
 
-      {favorites.length === 0 ? (
+      {Array.isArray(favorites) && favorites.length === 0 ?  (
         <div className="text-center py-12">
           <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-600 mb-2">No Favorites Yet</h2>
@@ -133,13 +116,19 @@ export default function FavoritesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favorites.map((favorite) => (
+          {Array.isArray(favorites) && favorites.map((favorite)=> (
             <Card key={favorite.id} className="overflow-hidden group">
               <div className="relative">
-                <img
+                {/* <img
                   src={favorite.property.images[0]?.url || "/property-placeholder.jpg"}
                   alt={favorite.property.title}
                   className="h-48 w-full object-cover transition-transform group-hover:scale-105"
+                /> */}
+                <img
+                //   src={property.images[0]?.url || "https://img.freepik.com/free-photo/comfortable-elegance-modern-bedroom-with-luxury-bedding-generated-by-ai_188544-17037.jpg?t=st=1736792239~exp=1736795839~hmac=aad904334a0acc7a8b31e72f53390b3fba30ee3d12b671868599248f53d9b5f3&w=2000"}
+                src={"https://img.freepik.com/free-photo/comfortable-elegance-modern-bedroom-with-luxury-bedding-generated-by-ai_188544-17037.jpg?t=st=1736792239~exp=1736795839~hmac=aad904334a0acc7a8b31e72f53390b3fba30ee3d12b671868599248f53d9b5f3&w=2000"}
+                  alt={favorite.property.title}
+                  className="object-cover w-full h-full"
                 />
                 <Button
                   variant="destructive"
@@ -184,5 +173,5 @@ export default function FavoritesPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

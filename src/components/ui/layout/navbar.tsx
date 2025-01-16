@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, X, User, Heart, MessageSquare, Home } from "lucide-react";
 import { useState, useEffect } from "react";
+import { isAuthenticatedAtom, userAtom } from "@/state/auth";
+import { useAtom } from "jotai";
 
 export function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const pathname = usePathname();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [, setUser] = useAtom(userAtom); // Set the user state atom
+  const [, setIsAuthenticated] = useAtom(isAuthenticatedAtom);
 
     const isActive = (path: string) => pathname === path;
 
@@ -34,13 +38,14 @@ export function Navbar() {
         setIsLoggedIn(!!token && !!user); // Check both token and user
     }, []);
 
-    const handleLogout = () => {
-        // Remove user data and token from localStorage
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        window.location.reload()
-
-    }
+     const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null) // Clear user state
+        setIsAuthenticated(false) // Clear authentication state
+        window.location.reload();
+      };
+      
 
     return (
         <nav className="top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">

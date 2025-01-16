@@ -1,22 +1,23 @@
-import { atom } from 'react-atomic-state'
+import { atom } from 'jotai'
 
 export interface User {
-  id: string
+  user_id: string
   email: string
   name: string
   role: string
+  token: string
 }
 
-export const userAtom = atom<User | null>(null)
-export const isAuthenticatedAtom = atom(false)
+const initialUser = (): User | null => {
+  try {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    return null; // Fallback if parsing fails
+  }
+};
 
-// Auth actions
-export const login = (userData: User) => {
-  userAtom.set(userData)
-  isAuthenticatedAtom.set(true)
-}
+export const userAtom = atom<User | null>(initialUser());
 
-export const logout = () => {
-  userAtom.set(null)
-  isAuthenticatedAtom.set(false)
-}
+// Atom to store authentication status (true or false)
+export const isAuthenticatedAtom = atom(false);

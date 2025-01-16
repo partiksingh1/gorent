@@ -16,6 +16,8 @@ import {
 } from "lucide-react"
 import axios from "axios"
 import React from "react"
+import { useAtom } from "jotai"
+import { userAtom } from "@/state/auth"
 
 // Define property type based on your schema
 interface Property {
@@ -42,6 +44,8 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const { id } = React.use(params);
+  const [user] = useAtom(userAtom);
+  const userId = user?.user_id;
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -60,6 +64,38 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
 
     fetchProperty()
   }, [])
+
+  const handleSaveProperty = async () => {
+    alert("clicked")
+    if (!property) return; // Ensure the property exists
+    if (!userId) {
+      alert("You need to log in to save a property.");
+      return;
+    }
+  
+    try {
+      const response = await axios.post(
+        `http://localhost:3000/api/v1/favorites/${property.id}`,
+        {
+          user_id: userId, // Include user ID in the request body
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Include token if required
+          },
+        }
+      );
+  
+      alert("Property saved to favorites successfully!");
+      console.log("Favorite response:", response.data);
+    } catch (error: any) {
+      console.error("Error saving property:", error);
+      alert(
+        error.response?.data?.message || "An error occurred while saving the property."
+      );
+    }
+  };
+  
 
   if (loading) {
     return (
@@ -177,7 +213,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Contact Agent
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button onClick={handleSaveProperty} variant="outline" className="w-full">
                 <Heart className="mr-2 h-4 w-4" />
                 Save Property
               </Button>
